@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  servicio-locaciones-java17
+
+  Sample SAM Template for servicio-locaciones-java17
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+Parameters:
+  TablePreach:
+    Type: String
+    Default: 'preach'
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    AllowedPattern: ^[A-Za-z]+$
+    ConstraintDescription: 'Required parameter. Must be characters only. No numbers allowed.'
+Resources:
+  #Service Locations API Gateway
+  #Stage name: dev
+  ServiciosApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Name: servicios-api-gateway
+
+  PreachFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: PreachFunction
+      Handler: preach.App::handleRequest
+      Runtime: java17
+      Architectures:
+        - arm64
+      MemorySize: 512
+      Events:
+        ApiEvents:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /preach
+            Method: GET
+            RestApiId: !Ref ServiciosApiGateway
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: preach
+            # TableName: !Ref TableBooks
+        
+  # preach:
+  #   Type: 'AWS::DynamoDB::Table'
+  #   Properties:
+  #     # TableName: book
+  #     TableName: !Ref TableBooks
+  #     AttributeDefinitions:
+  #       - AttributeName: "date"
+  #         AttributeType: "S"
+  #     KeySchema:
+  #       - AttributeName: "date"
+  #         KeyType: HASH
+  #     BillingMode: PROVISIONED
+  #     ProvisionedThroughput:
+  #       ReadCapacityUnits: 10
+  #       WriteCapacityUnits: 10
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ServiciosApiGateway:
+    Description: "API Gateway endpoint URL for Prod stage for Book function"
+    Value: !Sub "https://${ServiciosApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/location/"
+  #  # Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  PreachFunction:
+    Description: "Book Lambda Function ARN"
+    Value: !GetAtt PreachFunction.Arn
+  PreachFunctionIamRole:
+    Description: "Implicit IAM Role created for Book function"
+    Value: !GetAtt PreachFunctionRole.Arn
